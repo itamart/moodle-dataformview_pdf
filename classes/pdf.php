@@ -764,8 +764,11 @@ class dataformview_pdf_pdf extends mod_dataform\pluginbase\dataformview {
      */
     protected function get_documentname($namepattern) {
         $docname = 'doc';
+        if (!empty($namepattern)) {
+            $docname = $namepattern;
+        }
 
-        return "$docname.pdf";
+        return $docname;
     }
 
     /**

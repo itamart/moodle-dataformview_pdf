@@ -16,11 +16,13 @@
 
 /**
  * @package dataformview_pdf
- * @copyright Itamar Tzadok
+ * @copyright 2016 Itamar Tzadok
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $string['pluginname'] = 'PDF';
+$string['pdf:addinstance'] = 'Add a new PDF dataformview';
+
 $string['exportall'] = 'Export all';
 $string['exportpage'] = 'Export page';
 

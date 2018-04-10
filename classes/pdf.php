@@ -201,14 +201,9 @@ class dataformview_pdf_pdf extends mod_dataform\pluginbase\dataformview {
         $entryman = $this->entry_manager;
         $entryman->set_content(array('filter' => $this->filter));
 
-        // Exit if no entries.
-        if (!$entryman->entries) {
-            return;
-        }
-
         $content = array();
         if ($settings->pagebreak == 'entry') {
-            $entries = $entryman->entries;
+            $entries = $entryman->entries ? $entryman->entries : array();
             foreach ($entries as $eid => $entry) {
                 $entriesset = new object;
                 $entriesset->max = 1;

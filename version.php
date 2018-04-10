@@ -16,10 +16,11 @@
 
 /**
  * @package dataformview_pdf
- * @copyright 2014 Itamar Tzadok {@link http://substantialmethods.com}
+ * @copyright 2018 Itamar Tzadok {@link http://substantialmethods.com}
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $plugin->component = 'dataformview_pdf';
-$plugin->version = 2014091500;
-$plugin->requires = 2013111800;
+$plugin->release = '2.8.12';
+$plugin->version = 201411101200;
+$plugin->requires = 2014111000;

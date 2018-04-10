@@ -715,31 +715,134 @@ class dataformview_pdf_pdf extends mod_dataform\pluginbase\dataformview {
         $replacements = array();
         $tmpdir = make_temp_directory('files');
 
-        // Does not support theme images (until we find a way to process them).
+        // Process theme images.
+        $replacements = $this->get_theme_images_replacements($content, $replacements);
 
-        // Process pluginfile images.
-        $imagetypes = get_string('imagetypes', 'dataformview_pdf');
-        if (preg_match_all("%$CFG->wwwroot/pluginfile.php(/[^.]+.($imagetypes))%", $content, $matches)) {
-            $replacements = array();
+        // Process activity images.
+        $replacements = $this->get_activity_plugin_files_replacements($content, $replacements, $tmpdir);
 
-            $fs = get_file_storage();
-            foreach ($matches[1] as $imagepath) {
-                if (!$file = $fs->get_file_by_hash(sha1($imagepath)) or $file->is_directory()) {
-                    continue;
-                }
-                $filename = $file->get_filename();
-                $filepath = "$tmpdir/$filename";
-                if ($file->copy_content_to($filepath)) {
-                    $replacements["$CFG->wwwroot/pluginfile.php$imagepath"] = $filepath;
-                    $this->_tmpfiles[] = $filepath;
-                }
-            }
-        }
+        // Process content images.
+        $replacements = $this->get_content_plugin_files_replacements($content, $replacements, $tmpdir);
+
         // Replace content.
         if ($replacements) {
             $content = str_replace(array_keys($replacements), $replacements, $content);
         }
         return $content;
+    }
+
+    /**
+     *
+     */
+    protected function get_theme_images_replacements($content, $replacements) {
+        global $CFG;
+
+        if (preg_match_all("%$CFG->wwwroot/theme/image.php/([^\"]+)%", $content, $matches)) {
+            foreach ($matches[1] as $imagepath) {
+                $imageurl = "$CFG->wwwroot/theme/image.php/$imagepath";
+                // Process only once.
+                if (array_key_exists($imageurl, $replacements)) {
+                    continue;
+                }
+                $usesvg = true;
+                if (strpos($imagepath, '_s/') === 0) {
+                    // Can't use SVG
+                    $imagepath = substr($imagepath, 3);
+                    $usesvg = false;
+                }
+                // Image must be last because it may contain "/"
+                list($themename, $component, $rev, $image) = explode('/', $imagepath, 4);
+                $themename = clean_param($themename, PARAM_THEME);
+                $component = clean_param($component, PARAM_COMPONENT);
+                $rev = clean_param($rev, PARAM_INT);
+                $image = clean_param($image, PARAM_SAFEPATH);
+
+                $theme = theme_config::load($themename);
+
+                // We do not account for revision or caching here.
+                $filepath = $theme->resolve_image_location($image, $component, $usesvg);
+                $replacements[$imageurl] = $filepath;
+            }
+        }
+
+        return $replacements;
+    }
+
+    /**
+     *
+     */
+    protected function get_activity_plugin_files_replacements($content, $replacements, $tmpdir) {
+        global $CFG;
+
+        $contextid = $this->df->context->id;
+        if (preg_match_all("%$CFG->wwwroot/pluginfile.php/$contextid/dataformview_pdf/([^\"]+)%", $content, $matches)) {
+
+            $fs = get_file_storage();
+            foreach ($matches[1] as $path) {
+                $fileurl = "$CFG->wwwroot/pluginfile.php/$contextid/dataformview_pdf/$path";
+
+                // Process only once.
+                if (array_key_exists($fileurl, $replacements)) {
+                    continue;
+                }
+
+                $normalpath = "/$contextid/dataformview_pdf/$path";
+                if (!$file = $fs->get_file_by_hash(sha1($normalpath)) or $file->is_directory()) {
+                    continue;
+                }
+
+                $filename = $file->get_filename();
+                $filepath = "$tmpdir/$filename";
+                if ($file->copy_content_to($filepath)) {
+                    $replacements[$fileurl] = $filepath;
+                    $this->_tmpfiles[] = $filepath;
+                }
+            }
+        }
+
+        return $replacements;
+    }
+
+    /**
+     *
+     */
+    protected function get_content_plugin_files_replacements($content, $replacements, $tmpdir) {
+        global $CFG;
+
+        $contextid = $this->df->context->id;
+        if (preg_match_all("%$CFG->wwwroot/pluginfile.php/$contextid/mod_dataform/content/([^\"]+)%", $content, $matches)) {
+
+            $fs = get_file_storage();
+            foreach ($matches[1] as $path) {
+                $fileurl = "$CFG->wwwroot/pluginfile.php/$contextid/mod_dataform/content/$path";
+
+                // Process only once.
+                if (array_key_exists($fileurl, $replacements)) {
+                    continue;
+                }
+
+                $args = explode('/', $path);
+                $contentidhash = urldecode(array_shift($args));
+                if (!$contentid = $this->df->get_content_id_from_hash($contentidhash)) {
+                    continue;
+                }
+
+                $args = implode('/', $args);
+                $normalpath = "/$contextid/mod_dataform/content/$contentid/$args";
+                if (!$file = $fs->get_file_by_hash(sha1($normalpath)) or $file->is_directory()) {
+                    continue;
+                }
+
+                $filename = $file->get_filename();
+                $filepath = "$tmpdir/$filename";
+                if ($file->copy_content_to($filepath)) {
+                    $replacements[$fileurl] = $filepath;
+                    $this->_tmpfiles[] = $filepath;
+                }
+            }
+        }
+
+        return $replacements;
     }
 
     /**

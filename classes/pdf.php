@@ -719,23 +719,23 @@ class dataformview_pdf_pdf extends mod_dataform\pluginbase\dataformview {
 
         // Process pluginfile images.
         $imagetypes = get_string('imagetypes', 'dataformview_pdf');
-        $contextid = $this->df->get_context()->id;
-        $component = 'mod_dataform';
-        $filearea = 'content';
-        $baseurl = "$CFG->wwwroot/pluginfile.php/$contextid/$component/$filearea/";
+        $baseurl = "$CFG->wwwroot/pluginfile.php/";
 
         if (preg_match_all("%$baseurl([^.]+.($imagetypes))%", $content, $matches)) {
             $replacements = array();
-
             $fs = get_file_storage();
             foreach ($matches[1] as $imagepath) {
                 $pathparts = explode('/', $imagepath);
+                $contextid = array_shift($pathparts);
+                $component = array_shift($pathparts);
+                $filearea = array_shift($pathparts);
+
                 $hash = urldecode(array_shift($pathparts));
                 $filename = array_pop($pathparts);
                 $filepath = '/' . implode('/', $pathparts);
-                $contentid = $this->df->get_content_id_from_hash($hash);
+                $itemid = $component == 'mod_dataform' ? $this->df->get_content_id_from_hash($hash) : $hash;
 
-                if (!$file = $fs->get_file($contextid, $component, $filearea, $contentid, $filepath, $filename) or $file->is_directory()) {
+                if (!$file = $fs->get_file($contextid, $component, $filearea, $itemid, $filepath, $filename) or $file->is_directory()) {
                     continue;
                 }
                 $filename = $file->get_filename();

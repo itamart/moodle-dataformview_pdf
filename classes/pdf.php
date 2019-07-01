@@ -731,7 +731,7 @@ class dataformview_pdf_pdf extends mod_dataform\pluginbase\dataformview {
                 $filearea = array_shift($pathparts);
 
                 $hash = urldecode(array_shift($pathparts));
-                $filename = array_pop($pathparts);
+                $filename = urldecode(array_pop($pathparts));
                 $filepath = '/' . implode('/', $pathparts);
                 $itemid = $component == 'mod_dataform' ? $this->df->get_content_id_from_hash($hash) : $hash;
 

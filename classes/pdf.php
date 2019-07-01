@@ -719,18 +719,29 @@ class dataformview_pdf_pdf extends mod_dataform\pluginbase\dataformview {
 
         // Process pluginfile images.
         $imagetypes = get_string('imagetypes', 'dataformview_pdf');
-        if (preg_match_all("%$CFG->wwwroot/pluginfile.php(/[^.]+.($imagetypes))%", $content, $matches)) {
-            $replacements = array();
+        $baseurl = "$CFG->wwwroot/pluginfile.php/";
 
+        if (preg_match_all("%$baseurl([^.]+.($imagetypes))%", $content, $matches)) {
+            $replacements = array();
             $fs = get_file_storage();
             foreach ($matches[1] as $imagepath) {
-                if (!$file = $fs->get_file_by_hash(sha1($imagepath)) or $file->is_directory()) {
+                $pathparts = explode('/', $imagepath);
+                $contextid = array_shift($pathparts);
+                $component = array_shift($pathparts);
+                $filearea = array_shift($pathparts);
+
+                $hash = urldecode(array_shift($pathparts));
+                $filename = urldecode(array_pop($pathparts));
+                $filepath = '/' . implode('/', $pathparts);
+                $itemid = $component == 'mod_dataform' ? $this->df->get_content_id_from_hash($hash) : $hash;
+
+                if (!$file = $fs->get_file($contextid, $component, $filearea, $itemid, $filepath, $filename) or $file->is_directory()) {
                     continue;
                 }
                 $filename = $file->get_filename();
                 $filepath = "$tmpdir/$filename";
                 if ($file->copy_content_to($filepath)) {
-                    $replacements["$CFG->wwwroot/pluginfile.php$imagepath"] = $filepath;
+                    $replacements["$baseurl$imagepath"] = $filepath;
                     $this->_tmpfiles[] = $filepath;
                 }
             }
